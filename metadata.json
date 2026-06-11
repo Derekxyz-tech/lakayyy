@@ -1,0 +1,6 @@
+{
+  "name": "LakayMarket",
+  "description": "A modern online marketplace supporting local artisans and producers.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

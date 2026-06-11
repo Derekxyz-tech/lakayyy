@@ -1,0 +1,143 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Global helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        request.auth.token.email == "ghostytb77777@gmail.com"
+      );
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && (request.auth.uid == userId || isAdmin());
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['email', 'displayName']) &&
+             data.email is string &&
+             data.displayName is string &&
+             data.displayName.size() <= 100;
+    }
+
+    match /admins/{adminId} {
+      allow read: if isSignedIn();
+    }
+
+    match /users/{userId} {
+      allow get: if true;
+      allow list: if isAdmin();
+      allow create: if (isSignedIn() && request.auth.uid == userId && isValidUser(request.resource.data)) || (
+                    isSignedIn() &&
+                    request.resource.data.keys().hasOnly(['pendingRevenue', 'totalSales', 'updatedAt'])
+                  );
+      allow update: if (isOwner(userId) && isValidUser(request.resource.data)) || (
+                    isSignedIn() &&
+                    request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pendingRevenue', 'totalSales', 'updatedAt'])
+                  );
+      allow delete: if isAdmin();
+    }
+
+    match /products/{productId} {
+      function isValidProduct(data) {
+        return data.keys().hasAll(['sellerId', 'name', 'price', 'category']) &&
+               (data.sellerId == request.auth.uid || isAdmin()) &&
+               data.name is string && data.name.size() > 0 &&
+               data.price is number && data.price >= 0;
+      }
+      
+      allow read: if true;
+      allow create: if isSignedIn() && (isValidProduct(request.resource.data) || isAdmin());
+      allow update: if (isSignedIn() && (resource.data.sellerId == request.auth.uid || isAdmin()) && (isValidProduct(request.resource.data) || isAdmin())) || (
+                    isSignedIn() &&
+                    request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stock', 'updatedAt']) &&
+                    request.resource.data.stock is number &&
+                    request.resource.data.stock >= 0 &&
+                    request.resource.data.stock < resource.data.stock
+                  );
+      allow delete: if isSignedIn() && (resource.data.sellerId == request.auth.uid || isAdmin());
+    }
+
+    match /transactions/{transactionId} {
+      allow create: if isSignedIn() && request.resource.data.buyerId == request.auth.uid;
+      allow read, list: if isSignedIn() && (
+        resource.data.buyerId == request.auth.uid || 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) ||
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /withdrawals/{withdrawalId} {
+      allow create: if isSignedIn() && (request.resource.data.sellerId == request.auth.uid || isAdmin());
+      allow read, list: if isSignedIn() && (resource.data.sellerId == request.auth.uid || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if isSignedIn() && request.resource.data.buyerId == request.auth.uid;
+      allow delete: if isAdmin();
+    }
+
+    match /follows/{followId} {
+      allow read: if true;
+      allow create: if isSignedIn() && request.resource.data.followerId == request.auth.uid;
+      allow delete: if isAdmin() || (isSignedIn() && resource.data.followerId == request.auth.uid);
+    }
+
+    match /orders/{orderId} {
+      allow create: if isSignedIn() && request.resource.data.buyerId == request.auth.uid;
+      allow read, list: if isSignedIn() && (
+        resource.data.buyerId == request.auth.uid || 
+        resource.data.sellerId == request.auth.uid || 
+        isAdmin()
+      );
+      allow update: if isSignedIn() && (
+        resource.data.sellerId == request.auth.uid || 
+        resource.data.buyerId == request.auth.uid || 
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /chats/{chatId} {
+      allow read: if isSignedIn() && (
+        chatId.split('_')[0] == request.auth.uid || 
+        chatId.split('_')[1] == request.auth.uid || 
+        (resource != null && resource.data.buyerId == request.auth.uid) ||
+        (resource != null && resource.data.sellerId == request.auth.uid) ||
+        (resource != null && resource.data.unreadReceiverId == request.auth.uid) ||
+        isAdmin()
+      );
+      
+      allow write, create, update: if isSignedIn() && (
+        chatId.split('_')[0] == request.auth.uid || 
+        chatId.split('_')[1] == request.auth.uid || 
+        isAdmin()
+      );
+
+      match /messages/{messageId} {
+        allow read, write, create, update: if isSignedIn() && (
+          chatId.split('_')[0] == request.auth.uid || 
+          chatId.split('_')[1] == request.auth.uid || 
+          isAdmin()
+        );
+      }
+    }
+
+    match /system/{document=**} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+  }
+}

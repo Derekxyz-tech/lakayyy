@@ -15,7 +15,7 @@ interface AdminWithdrawModalProps {
 }
 
 export default function AdminWithdrawModal({ isOpen, onClose, systemStats, platformCommissions, onSuccess }: AdminWithdrawModalProps) {
-  const [step, setStep] = useState<'form' | 'processing' | 'success'>('form');
+  const [step, setStep] = useState<'form' | 'confirm' | 'processing' | 'success'>('form');
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [selectedMethod, setSelectedMethod] = useState<'moncash' | 'natcash' | 'kashpaw' | null>(null);
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -40,8 +40,6 @@ export default function AdminWithdrawModal({ isOpen, onClose, systemStats, platf
   
   const isValidPhone = () => {
     if (cleanPhone.length !== 8) return false;
-    if (selectedMethod === 'moncash' && !cleanPhone.startsWith('3')) return false;
-    if (selectedMethod === 'natcash' && !cleanPhone.startsWith('4')) return false;
     return true;
   };
 
@@ -266,18 +264,14 @@ export default function AdminWithdrawModal({ isOpen, onClose, systemStats, platf
                             const val = e.target.value.replace(/[^0-9 ]/g, '').trimStart();
                             setPhoneNumber(val);
                           }}
-                          placeholder={selectedMethod === 'moncash' ? "3XXX XXXX" : selectedMethod === 'natcash' ? "4XXX XXXX" : "3XXX XXXX ou 4XXX XXXX"}
+                          placeholder="EX: 34567890"
                           className="w-full pl-22 pr-6 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:bg-white focus:border-brand/40 outline-none transition-all text-sm font-black tracking-widest placeholder:text-gray-300 shadow-inner"
                         />
                       </div>
                       
                       {cleanPhone.length > 0 && !isValidPhone() && (
                         <p className="text-[10px] font-bold text-red-500 bg-red-50 p-3 rounded-xl border border-red-100/50">
-                          {selectedMethod === 'moncash' 
-                            ? "Le numéro doit impérativement commencer par 3 pour MonCash (8 chiffres pour Haïti)." 
-                            : selectedMethod === 'natcash'
-                            ? "Le numéro doit impérativement commencer par 4 pour NatCash (8 chiffres pour Haïti)."
-                            : "Le numéro doit comporter exactement 8 chiffres haïtiens."}
+                          Le numéro doit comporter exactement 8 chiffres.
                         </p>
                       )}
                     </div>
@@ -287,7 +281,7 @@ export default function AdminWithdrawModal({ isOpen, onClose, systemStats, platf
                 <div className="mt-10">
                   <button
                     disabled={!selectedMethod || !isValidPhone() || !isValidAmount()}
-                    onClick={handleWithdraw}
+                    onClick={() => setStep('confirm')}
                     className="w-full py-5 bg-gray-900 text-white rounded-[1.5rem] font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 hover:bg-black transition-all disabled:opacity-25 cursor-pointer"
                   >
                     Valider le virement admin <ArrowRight className="h-4 w-4" />
@@ -295,6 +289,54 @@ export default function AdminWithdrawModal({ isOpen, onClose, systemStats, platf
                   <p className="text-center text-[10px] text-gray-300 font-bold mt-6 uppercase tracking-widest flex items-center justify-center gap-2">
                     <ShieldCheck className="h-3 w-3" /> Signature HMAC Sec-System Active
                   </p>
+                </div>
+              </div>
+            )}
+
+            {step === 'confirm' && (
+              <div className="animate-in fade-in slide-in-from-bottom-4">
+                <div className="mb-8 text-center">
+                  <span className="px-3 py-1 bg-amber-500/10 text-amber-600 text-[10px] font-black uppercase tracking-widest rounded-full flex items-center gap-1.5 w-fit mx-auto">
+                    <AlertCircle className="h-3 w-3" /> Confirmation du transfert
+                  </span>
+                  <h2 className="text-3xl font-black text-gray-900 mt-4 leading-tight">
+                    Vérifiez vos détails (Admin)
+                  </h2>
+                  <p className="text-xs font-semibold text-gray-400 mt-2">
+                    Veuillez confirmer les informations de retrait des profits de la plate-forme. Les virements vers les réseaux mobiles sont instantanés et définitifs.
+                  </p>
+                </div>
+
+                <div className="p-6 bg-gray-50/80 rounded-3xl border border-gray-100/60 space-y-4">
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100/50">
+                    <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Montant demandé</span>
+                    <span className="text-sm font-black text-gray-900 font-mono">{amountNumber.toLocaleString()} HTG</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100/50">
+                    <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Moyen de retrait</span>
+                    <span className="text-xs font-black text-gray-950 uppercase tracking-widest flex items-center gap-2">
+                      {selectedMethod === 'moncash' ? 'MonCash (Digicel)' : selectedMethod === 'natcash' ? 'NatCash (Natcom)' : 'KashPaw'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Numéro de téléphone</span>
+                    <span className="text-sm font-black text-gray-900 tracking-widest font-mono">+509 {cleanPhone}</span>
+                  </div>
+                </div>
+
+                <div className="mt-8 space-y-3">
+                  <button
+                    onClick={handleWithdraw}
+                    className="w-full py-5 bg-green-600 text-white rounded-[1.5rem] font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 hover:bg-green-700 transition-all cursor-pointer shadow-lg shadow-green-600/10"
+                  >
+                    Confirmer et Envoyer <ArrowRight className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => setStep('form')}
+                    className="w-full py-4 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-[1.5rem] font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 transition-all cursor-pointer"
+                  >
+                    Retour pour modifier
+                  </button>
                 </div>
               </div>
             )}

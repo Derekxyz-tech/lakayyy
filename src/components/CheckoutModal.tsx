@@ -99,8 +99,6 @@ export default function CheckoutModal({ isOpen, onClose, product, cartItems, onS
     if (!isAmountValid) return false;
     if (!selectedMethod) return false;
     if (cleanPhone.length !== 8) return false;
-    if (selectedMethod === 'moncash' && !cleanPhone.startsWith('3')) return false;
-    if (selectedMethod === 'natcash' && !cleanPhone.startsWith('4')) return false;
     return true;
   };
 
@@ -486,7 +484,7 @@ export default function CheckoutModal({ isOpen, onClose, product, cartItems, onS
                             const val = e.target.value.replace(/[^0-9 ]/g, '').trimStart();
                             setPhoneNumber(val);
                           }}
-                          placeholder={selectedMethod === 'moncash' ? "3XXX XXXX" : selectedMethod === 'natcash' ? "4XXX XXXX" : "3XXX XXXX ou 4XXX XXXX"}
+                          placeholder="EX: 34567890"
                           className="w-full pl-22 pr-6 py-4.5 bg-gray-50/50 border border-gray-100 rounded-2xl focus:bg-white focus:border-brand/40 outline-none transition-all text-sm font-black tracking-widest placeholder:text-gray-300 placeholder:font-mono shadow-inner"
                         />
                       </div>
@@ -500,11 +498,7 @@ export default function CheckoutModal({ isOpen, onClose, product, cartItems, onS
 
                       {isAmountValid && cleanPhone.length > 0 && !isValidForMethod() && (
                         <p className="text-[10px] font-bold text-red-500 bg-red-50 p-3 rounded-xl border border-red-100/50 animate-in shake-in">
-                          {selectedMethod === 'moncash' 
-                            ? "Pour MonCash, le numéro doit obligatoirement commencer par 3 et contenir 8 chiffres." 
-                            : selectedMethod === 'natcash'
-                            ? "Pour NatCash, le numéro doit obligatoirement commencer par 4 et contenir 8 chiffres."
-                            : "Pour KashPaw, le numéro doit comporter exactement 8 chiffres haïtiens."}
+                          Le numéro de téléphone doit comporter exactement 8 chiffres.
                         </p>
                       )}
                     </div>
